@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Medical Triage &amp; Report Explainer — Powered by Gemma 3:1B</title>
+    <meta name="description" content="Local, private, AI-powered medical symptom triage, PDF lab report explainer, and health Q&A assistant. Built with Gemma 3:1B, FastAPI, and Ollama." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <div class="app-container">
+
+        <!-- ==================== HEADER ==================== -->
+        <header class="app-header">
+            <div class="header-logo">🩺</div>
+            <h1 class="header-title">AI Medical Triage &amp; Report Explainer</h1>
+            <p class="header-tagline">Local, private, safety-first symptom assessment &amp; PDF lab report analyzer</p>
+            <div class="status-bar" id="status-bar">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Checking backend...</span>
+            </div>
+        </header>
+
+        <!-- ==================== NAVIGATION TABS ==================== -->
+        <nav class="tab-nav" role="tablist">
+            <button class="tab-btn active" data-tab="triage" role="tab" aria-selected="true" id="tab-btn-triage">
+                <span>🩺 Symptom Triage</span>
+            </button>
+            <button class="tab-btn" data-tab="report" role="tab" aria-selected="false" id="tab-btn-report">
+                <span>📄 Report Explainer</span>
+            </button>
+            <button class="tab-btn" data-tab="chat" role="tab" aria-selected="false" id="tab-btn-chat">
+                <span>💬 Health Chat</span>
+            </button>
+        </nav>
+
+        <!-- ============================================================
+             TAB 1: SYMPTOM TRIAGE
+             ============================================================ -->
+        <section class="tab-panel active" id="panel-triage" role="tabpanel">
+            <div class="glass-card" style="position:relative;">
+                <h2 class="card-title">Symptom &amp; Patient Details</h2>
+                <p class="card-subtitle">Fill in symptoms to receive an immediate urgency rating and actionable guidance.</p>
+
+                <form id="triage-form" autocomplete="off">
+                    <div class="form-grid">
+                        <!-- Age -->
+                        <div class="form-group">
+                            <label class="form-label" for="triage-age">Patient Age</label>
+                            <input class="form-input" type="number" id="triage-age" min="0" max="120" value="30" required />
+                        </div>
+
+                        <!-- Gender -->
+                        <div class="form-group">
+                            <label class="form-label" for="triage-gender">Gender</label>
+                            <select class="form-select" id="triage-gender">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                                <option value="Prefer not to say">Prefer not to say</option>
+                            </select>
+                        </div>
+
+                        <!-- Duration -->
+                        <div class="form-group">
+                            <label class="form-label" for="triage-duration">Symptom Duration</label>
+                            <input class="form-input" type="text" id="triage-duration" placeholder="e.g. 3 hours, 2 days, 1 week" value="2 days" required />
+                        </div>
+
+                        <!-- Language -->
+                        <div class="form-group">
+                            <label class="form-label" for="triage-language">Response Language</label>
+                            <select class="form-select" id="triage-language">
+                                <option value="English">English</option>
+                                <option value="Hindi">Hindi</option>
+                                <option value="Telugu">Telugu</option>
+                                <option value="Tamil">Tamil</option>
+                                <option value="Kannada">Kannada</option>
+                                <option value="Spanish">Spanish</option>
+                                <option value="French">French</option>
+                            </select>
+                        </div>
+
+                        <!-- Severity Slider -->
+                        <div class="form-group">
+                            <label class="form-label">Severity Level</label>
+                            <div class="severity-slider-container">
+                                <div class="severity-label-row">
+                                    <span class="severity-value medium" id="severity-display">5</span>
+                                    <span class="severity-text" id="severity-text-label">Moderate</span>
+                                </div>
+                                <input type="range" id="triage-severity" min="1" max="10" value="5" />
+                            </div>
+                        </div>
+
+                        <!-- Existing Conditions -->
+                        <div class="form-group">
+                            <label class="form-label" for="triage-conditions">Pre-existing Conditions</label>
+                            <input class="form-input" type="text" id="triage-conditions" placeholder="e.g. Asthma, Diabetes, Hypertension" value="None" />
+                        </div>
+
+                        <!-- Symptoms -->
+                        <div class="form-group full-width">
+                            <label class="form-label" for="triage-symptoms">Describe Symptoms in Detail</label>
+                            <textarea class="form-textarea" id="triage-symptoms" placeholder="e.g., I have had a high fever (101°F), persistent cough, and body aches for two days." required></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="triage-submit-btn">
+                        🔍 Submit Symptom Triage Assessment
+                    </button>
+                </form>
+
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="triage-loading">
+                    <div class="spinner"></div>
+                    <span class="loading-text">Analyzing symptoms with Gemma AI...</span>
+                </div>
+            </div>
+
+            <!-- Triage Results -->
+            <div id="triage-results" style="display:none;"></div>
+        </section>
+
+        <!-- ============================================================
+             TAB 2: MEDICAL REPORT EXPLAINER
+             ============================================================ -->
+        <section class="tab-panel" id="panel-report" role="tabpanel">
+            <div class="glass-card" style="position:relative;">
+                <h2 class="card-title">Upload &amp; Explain Medical PDF Reports</h2>
+                <p class="card-subtitle">Upload blood test results, lab reports, or diagnostic summaries for a clear plain-English explanation.</p>
+
+                <!-- Upload Zone -->
+                <div class="upload-zone" id="upload-zone">
+                    <span class="upload-icon">📄</span>
+                    <p class="upload-text">
+                        Drag &amp; drop your PDF here or
+                        <span class="upload-text-accent" id="upload-browse-trigger">browse files</span>
+                    </p>
+                    <p class="upload-hint">Supports PDF files up to 20 MB</p>
+                    <input type="file" id="pdf-file-input" accept=".pdf" />
+                    <div id="file-selected-display"></div>
+                </div>
+
+                <!-- Language for Report -->
+                <div class="form-group" style="margin-top:18px; max-width:260px;">
+                    <label class="form-label" for="report-language">Response Language</label>
+                    <select class="form-select" id="report-language">
+                        <option value="English">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="French">French</option>
+                    </select>
+                </div>
+
+                <button class="btn-primary" id="report-submit-btn" disabled>
+                    📊 Process &amp; Explain Report
+                </button>
+
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="report-loading">
+                    <div class="spinner"></div>
+                    <span class="loading-text">Extracting PDF text &amp; generating explanation...</span>
+                </div>
+            </div>
+
+            <!-- Report Results -->
+            <div id="report-results" style="display:none;"></div>
+        </section>
+
+        <!-- ============================================================
+             TAB 3: HEALTH ASSISTANT CHAT
+             ============================================================ -->
+        <section class="tab-panel" id="panel-chat" role="tabpanel">
+            <div class="glass-card chat-container" style="position:relative; padding:0; overflow:hidden;">
+                <div style="padding:20px 24px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <h2 class="card-title" style="margin-bottom:4px;">💬 Health Assistant Chat</h2>
+                    <p class="card-subtitle" style="margin-bottom:14px;">Ask general wellness questions, understand medical terms, or inquire about healthcare guidance.</p>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="chat-messages" id="chat-messages">
+                    <div class="chat-bubble assistant">
+                        Hello! I'm your AI Health Assistant powered by Gemma 3:1B. How can I help you understand health concepts or medical terms today? 🩺
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="chat-input-area">
+                    <input class="chat-input" type="text" id="chat-input" placeholder="Ask a health or medical term question..." autocomplete="off" />
+                    <button class="chat-send-btn" id="chat-send-btn" title="Send message">
+                        ➤
+                    </button>
+                </div>
+
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="chat-loading">
+                    <div class="spinner"></div>
+                    <span class="loading-text">Thinking...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== FOOTER ==================== -->
+        <footer class="app-footer">
+            <p class="footer-disclaimer">
+                ⚠️ <strong>Medical Disclaimer:</strong> This application is an educational and informational tool powered by AI. It does <strong>NOT</strong> provide medical diagnoses, treatment advice, or drug prescriptions. Always consult a qualified healthcare provider. In case of emergency, call 911 or visit the nearest ER.
+            </p>
+            <p class="footer-credits">
+                AI Medical Triage v1.0 • Powered by <span>Gemma 3:1B</span> &amp; FastAPI &amp; Ollama
+            </p>
+        </footer>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
